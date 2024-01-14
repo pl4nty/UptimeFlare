@@ -9,6 +9,8 @@ import Header from '@/components/Header'
 import MonitorList from '@/components/MonitorList'
 import { Center, Divider, Text } from '@mantine/core'
 
+import { dnsRecords } from 'cloudflare-client'
+
 export const runtime = 'experimental-edge'
 const inter = Inter({ subsets: ['latin'] })
 
@@ -67,19 +69,43 @@ export default function Home({
 }
 
 export async function getServerSideProps() {
-  const { UPTIMEFLARE_STATE } = process.env as unknown as {
-    UPTIMEFLARE_STATE: KVNamespace
+  const { UPTIMEFLARE_STATE, CLOUDFLARE_ZONE_ID, CLOUDFLARE_API_TOKEN } = process.env as unknown as {
+    UPTIMEFLARE_STATE: KVNamespace,
+    CLOUDFLARE_ZONE_ID: string,
+    CLOUDFLARE_API_TOKEN: string
   }
   const state = (await UPTIMEFLARE_STATE?.get('state', 'json')) as unknown as MonitorState
 
+  // load monitors from Cloudflare proxied DNS records. official API only supports node
+  let cfMonitors: { id: string, name: string, tooltip: string }[] = []
+  try {
+    const cf = dnsRecords({
+      zoneId: CLOUDFLARE_ZONE_ID,
+      accessToken: CLOUDFLARE_API_TOKEN
+    })
+    const records = await cf.find({ proxied: true }).all()
+    
+    cfMonitors = records.map(monitor => ({
+      id: monitor.name,
+      name: monitor.name,
+      tooltip: `https://${monitor.name}/`,
+    }))
+  } catch(err) {
+    console.log(`Skipping Cloudflare auto-discovery: ${err}`)
+  }
+
   // Only present these values to client
-  const monitors = workerConfig.monitors.map((monitor) => {
+  let monitors = workerConfig.monitors.map(monitor => {
     return {
       id: monitor.id,
       name: monitor.name,
       tooltip: monitor.tooltip,
     }
-  })
+  }).concat(cfMonitors)
+  monitors = monitors.reduce((acc, curr) => {
+    if (!acc.find(item => item.id === curr.id)) acc.push(curr)
+    return acc
+  }, [] as any[])
 
   return { props: { state, monitors } }
 }

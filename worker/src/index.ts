@@ -1,14 +1,18 @@
 import { workerConfig } from '../../uptime.config'
 import { getWorkerLocation } from './util'
-import { MonitorState } from '../../uptime.types'
+import { MonitorState, MonitorTarget } from '../../uptime.types'
 import { getStatus } from './monitor'
 
+import { dnsRecords } from 'cloudflare-client'
+
 export interface Env {
-  UPTIMEFLARE_STATE: KVNamespace
+  UPTIMEFLARE_STATE: KVNamespace,
+  CLOUDFLARE_ZONE_ID: string,
+  CLOUDFLARE_API_TOKEN: string
 }
 
-export default {
-  async fetch(request: Request): Promise<Response> {
+const worker = {
+  async fetch(request: Request, env: Env): Promise<Response> {
     const workerLocation = request.cf?.colo
     console.log(`Handling request event at ${workerLocation}...`)
 
@@ -17,7 +21,26 @@ export default {
     }
 
     const targetId = (await request.json<{ target: string }>())['target']
-    const target = workerConfig.monitors.find((m) => m.id === targetId)
+
+    // check for target in Cloudflare proxied DNS records
+    let record
+    try {
+      const cf = dnsRecords({
+        zoneId: env.CLOUDFLARE_ZONE_ID,
+        accessToken: env.CLOUDFLARE_API_TOKEN
+      })
+      record = await cf.find({ proxied: true, name: targetId }).first()
+    } catch(err) {
+      console.log(`Skipping Cloudflare auto-discovery: ${err}`)
+    }
+
+    const target = record ? {
+      id: record.name,
+      name: record.name,
+      target: `https://${record.name}/`,
+      tooltip: `https://${record.name}/`,
+      method: "GET"
+    } : workerConfig.monitors.find((m) => m.id === targetId)
 
     if (target === undefined) {
       return new Response('Target Not Found', { status: 404 })
@@ -58,9 +81,35 @@ export default {
     state.overallDown = 0
     state.overallUp = 0
 
+    // load monitors from Cloudflare proxied DNS records. official API only supports node
+    let cfMonitors: MonitorTarget[] = []
+    try {
+      const cf = dnsRecords({
+        zoneId: env.CLOUDFLARE_ZONE_ID,
+        accessToken: env.CLOUDFLARE_API_TOKEN
+      })
+      const records = await cf.find({ proxied: true }).all()
+
+      cfMonitors = records.map(monitor => ({
+        id: monitor.name,
+        name: monitor.name,
+        target: `https://${monitor.name}/`,
+        method: 'GET'
+      }))
+    } catch(err) {
+      console.log(`Skipping Cloudflare auto-discovery: ${err}`)
+    }
+    
+    // remove duplicates, allowing config to override automatic targets
+    let monitors = (workerConfig.monitors as MonitorTarget[]).concat(cfMonitors)
+    monitors = monitors.reduce((acc, curr) => {
+      if (!acc.find(item => item.id === curr.id)) acc.push(curr)
+      return acc
+    }, [] as MonitorTarget[])
+
     // Check each monitor
     // TODO: concurrent status check
-    for (const monitor of workerConfig.monitors) {
+    for (const monitor of monitors) {
       console.log(`[${workerLocation}] Checking ${monitor.name}...`)
 
       let checkLocation = workerLocation
@@ -218,3 +267,5 @@ export default {
     await env.UPTIMEFLARE_STATE.put('state', JSON.stringify(state))
   },
 }
+
+export default worker
