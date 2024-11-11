@@ -36,7 +36,7 @@ export default function Home({
   }))).reduce((acc, curr) => {
     if (!acc.find(item => item.id === curr.id)) acc.push(curr)
     return acc
-  }, [] as any[])
+  }, [] as any[]).sort((a, b) => a.name.localeCompare(b.name))
 
   // Specify monitorId in URL hash to view a specific monitor (can be used in iframe)
   const monitorId = window.location.hash.substring(1);
