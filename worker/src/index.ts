@@ -125,7 +125,8 @@ const worker = {
         id: monitor.name,
         name: monitor.name,
         target: `https://${monitor.name}/`,
-        method: 'GET'
+        method: 'GET',
+        // checkLocationWorkerRoute: 'https://status-worker.tplant.com.au/'
       }))
     } catch(err) {
       console.log(`Skipping Cloudflare auto-discovery: ${err}`)
