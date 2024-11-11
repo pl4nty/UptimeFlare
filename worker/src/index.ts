@@ -139,6 +139,13 @@ const worker = {
       return acc
     }, [] as MonitorTarget[])
 
+    // remove incidents for monitors that are no longer in the config
+    for (const id of Object.keys(state.incident)) {
+      if (monitors.find(m => m.id === id) === undefined) {
+        delete state.incident[id]
+      }
+    }
+
     // Check each monitor
     // TODO: concurrent status check
     for (const monitor of monitors) {
