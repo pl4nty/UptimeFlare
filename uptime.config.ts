@@ -54,6 +54,8 @@ const workerConfig = {
       name: 'ataxx.tplant.com.au',
       method: 'HEAD',
       target: 'https://ataxx.tplant.com.au',
+      statusPageLink: 'https://ataxx.tplant.com.au',
+      expectedCodes: [404],
     },
   ],
   notification: {
