@@ -143,12 +143,11 @@ const worker = {
 
     // if Cloudflare was checked, remove incidents for monitors that are no longer in the config
     if (cfChecked) {
-      
-    for (const id of Object.keys(state.incident)) {
-      if (monitors.find(m => m.id === id) === undefined) {
-        delete state.incident[id]
+      for (const id of Object.keys(state.incident)) {
+        if (monitors.find(m => m.id === id) === undefined) {
+          delete state.incident[id]
+        }
       }
-    }
     }
 
     // Check each monitor
