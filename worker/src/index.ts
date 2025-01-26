@@ -114,6 +114,7 @@ const worker = {
 
     // load monitors from Cloudflare proxied DNS records. official API only supports node
     let cfMonitors: MonitorTarget[] = []
+    let cfChecked = false;
     try {
       const cf = dnsRecords({
         zoneId: env.CLOUDFLARE_ZONE_ID,
@@ -128,6 +129,7 @@ const worker = {
         method: 'GET',
         // checkLocationWorkerRoute: 'https://status-worker.tplant.com.au/'
       }))
+      cfChecked = true;
     } catch(err) {
       console.log(`Skipping Cloudflare auto-discovery: ${err}`)
     }
@@ -139,11 +141,14 @@ const worker = {
       return acc
     }, [] as MonitorTarget[])
 
-    // remove incidents for monitors that are no longer in the config
+    // if Cloudflare was checked, remove incidents for monitors that are no longer in the config
+    if (cfChecked) {
+      
     for (const id of Object.keys(state.incident)) {
       if (monitors.find(m => m.id === id) === undefined) {
         delete state.incident[id]
       }
+    }
     }
 
     // Check each monitor
