@@ -368,19 +368,18 @@ const worker = {
       statusChanged ||= monitorStatusChanged
     }
 
-    async function processMonitorsWithLimit(limit: number): Promise<void> {
+    async function processMonitorsWithLimit(monitors: MonitorTarget[], limit: number): Promise<void> {
       const pool: Promise<void>[] = [];
       for (const monitor of monitors) {
-        const promise = processMonitor(monitor)
-        pool.push(promise)
-        console.log(`pushed ${monitor.name}`)
+        const promise = processMonitor(monitor).then(() => {
+          // Remove the resolved promise from the pool
+          pool.splice(pool.indexOf(promise), 1);
+        });
+        pool.push(promise);
 
         // If the pool reaches the limit, wait for one of the promises to resolve
         if (pool.length >= limit) {
-          await Promise.race(pool)
-          // Remove the resolved promise from the pool
-          pool.splice(pool.findIndex(p => p === promise), 1)
-          console.log(`spliced ${monitor.name}`)
+          await Promise.race(pool);
         }
       }
 
