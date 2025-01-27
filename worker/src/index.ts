@@ -368,17 +368,19 @@ const worker = {
       statusChanged ||= monitorStatusChanged
     }
 
-    async function processMonitorsWithLimit(monitors: MonitorTarget[], limit: number): Promise<void> {
+    async function processMonitorsWithLimit(limit: number): Promise<void> {
       const pool: Promise<void>[] = [];
       for (const monitor of monitors) {
-        const promise = processMonitor(monitor);
-        pool.push(promise);
+        const promise = processMonitor(monitor)
+        pool.push(promise)
+        console.log(`pushed ${monitor.name}`)
 
         // If the pool reaches the limit, wait for one of the promises to resolve
         if (pool.length >= limit) {
-          await Promise.race(pool);
+          await Promise.race(pool)
           // Remove the resolved promise from the pool
-          pool.splice(pool.findIndex(p => p === promise), 1);
+          pool.splice(pool.findIndex(p => p === promise), 1)
+          console.log(`spliced ${monitor.name}`)
         }
       }
 
@@ -388,7 +390,7 @@ const worker = {
 
     // Cloudflare limit to 6 conncurrent fetches, and 50 total on free tier
     // https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
-    await processMonitorsWithLimit(monitors, 6)
+    await processMonitorsWithLimit(6)
 
     console.log(`statusChanged: ${statusChanged}, lastUpdate: ${state.lastUpdate}, currentTime: ${currentTimeSecond}`)
     // Update state
