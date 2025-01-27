@@ -382,7 +382,7 @@ const worker = {
       await env.UPTIMEFLARE_STATE.put('state', JSON.stringify(state))
     } else {
       console.log("Skipping state update due to cooldown period.")
-    }))
+    }
   },
 }
 
