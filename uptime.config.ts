@@ -1,6 +1,6 @@
 const pageConfig = {
   // Title for your status page
-  title: "Tom's Status Page",
+  title: "status.tplant.com.au",
   // Links shown at the header of your status page, could set `highlight` to `true`
   links: [
     { link: 'https://github.com/pl4nty', label: 'GitHub' },
@@ -56,6 +56,13 @@ const workerConfig = {
       target: 'https://ataxx.tplant.com.au',
       statusPageLink: 'https://ataxx.tplant.com.au',
       expectedCodes: [404],
+    },
+    {
+      id: 'status.tplant.com.au',
+      name: 'status.tplant.com.au',
+      method: 'HEAD',
+      target: 'https://status.tplant.com.au',
+      statusPageLink: 'https://status.tplant.com.au',
     },
   ],
   notification: {
