@@ -389,7 +389,7 @@ const worker = {
 
     // Cloudflare limit to 6 conncurrent fetches, and 50 total on free tier
     // https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
-    await processMonitorsWithLimit(6)
+    await processMonitorsWithLimit(monitors, 6)
 
     console.log(`statusChanged: ${statusChanged}, lastUpdate: ${state.lastUpdate}, currentTime: ${currentTimeSecond}`)
     // Update state
