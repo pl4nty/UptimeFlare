@@ -151,8 +151,9 @@ const worker = {
     }
 
     // Check each monitor
-    // TODO: concurrent status check
-    for (const monitor of monitors) {
+    // Cloudflare limit to 6 conncurrent fetches, and 50 total on free tier
+    // https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
+    await Promise.all(monitors.map(async (monitor) => {
       console.log(`[${workerLocation}] Checking ${monitor.name}...`)
 
       let monitorStatusChanged = false
@@ -367,7 +368,7 @@ const worker = {
       state.incident[monitor.id] = incidentList
 
       statusChanged ||= monitorStatusChanged
-    }
+    }))
 
     console.log(`statusChanged: ${statusChanged}, lastUpdate: ${state.lastUpdate}, currentTime: ${currentTimeSecond}`)
     // Update state
@@ -381,7 +382,7 @@ const worker = {
       await env.UPTIMEFLARE_STATE.put('state', JSON.stringify(state))
     } else {
       console.log("Skipping state update due to cooldown period.")
-    }
+    }))
   },
 }
 
