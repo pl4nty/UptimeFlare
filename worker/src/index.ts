@@ -30,7 +30,7 @@ const worker = {
         accessToken: env.CLOUDFLARE_API_TOKEN
       })
       record = await cf.find({ proxied: true, name: targetId }).first()
-    } catch(err) {
+    } catch (err) {
       console.log(`Skipping Cloudflare auto-discovery: ${err}`)
     }
 
@@ -130,10 +130,10 @@ const worker = {
         // checkLocationWorkerRoute: 'https://status-worker.tplant.com.au/'
       }))
       cfChecked = true;
-    } catch(err) {
+    } catch (err) {
       console.log(`Skipping Cloudflare auto-discovery: ${err}`)
     }
-    
+
     // remove duplicates, allowing config to override automatic targets
     let monitors = (workerConfig.monitors as MonitorTarget[]).concat(cfMonitors)
     monitors = monitors.reduce((acc, curr) => {
@@ -151,9 +151,7 @@ const worker = {
     }
 
     // Check each monitor
-    // Cloudflare limit to 6 conncurrent fetches, and 50 total on free tier
-    // https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
-    await Promise.all(monitors.map(async (monitor) => {
+    async function processMonitor(monitor: MonitorTarget): Promise<void> {
       console.log(`[${workerLocation}] Checking ${monitor.name}...`)
 
       let monitorStatusChanged = false
@@ -368,7 +366,29 @@ const worker = {
       state.incident[monitor.id] = incidentList
 
       statusChanged ||= monitorStatusChanged
-    }))
+    }
+
+    async function processMonitorsWithLimit(monitors: MonitorTarget[], limit: number): Promise<void> {
+      const pool: Promise<void>[] = [];
+      for (const monitor of monitors) {
+        const promise = processMonitor(monitor);
+        pool.push(promise);
+
+        // If the pool reaches the limit, wait for one of the promises to resolve
+        if (pool.length >= limit) {
+          await Promise.race(pool);
+          // Remove the resolved promise from the pool
+          pool.splice(pool.findIndex(p => p === promise), 1);
+        }
+      }
+
+      // Wait for all remaining promises to resolve
+      await Promise.all(pool);
+    }
+
+    // Cloudflare limit to 6 conncurrent fetches, and 50 total on free tier
+    // https://developers.cloudflare.com/workers/platform/limits/#simultaneous-open-connections
+    await processMonitorsWithLimit(monitors, 6)
 
     console.log(`statusChanged: ${statusChanged}, lastUpdate: ${state.lastUpdate}, currentTime: ${currentTimeSecond}`)
     // Update state
