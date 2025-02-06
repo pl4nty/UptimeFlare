@@ -57,12 +57,21 @@ const workerConfig = {
       statusPageLink: 'https://ataxx.tplant.com.au',
       expectedCodes: [404],
     },
+    // reduce recursive usage to stay in free tier
     {
       id: 'status.tplant.com.au',
       name: 'status.tplant.com.au',
       method: 'HEAD',
       target: 'https://status.tplant.com.au',
       statusPageLink: 'https://status.tplant.com.au',
+    },
+    // reduce observability cost
+    {
+      id: 'azexplorer.tplant.com.au',
+      name: 'azexplorer.tplant.com.au',
+      method: 'HEAD',
+      target: 'https://azexplorer.tplant.com.au',
+      statusPageLink: 'https://azexplorer.tplant.com.au',
     },
   ],
   notification: {
