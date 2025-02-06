@@ -61,16 +61,16 @@ const workerConfig = {
     {
       id: 'status.tplant.com.au',
       name: 'status.tplant.com.au',
-      method: 'HEAD',
-      target: 'https://status.tplant.com.au',
+      method: 'GET',
+      target: 'https://google.com',
       statusPageLink: 'https://status.tplant.com.au',
     },
     // reduce observability cost
     {
       id: 'azexplorer.tplant.com.au',
       name: 'azexplorer.tplant.com.au',
-      method: 'HEAD',
-      target: 'https://azexplorer.tplant.com.au',
+      method: 'GET',
+      target: 'https://google.com',
       statusPageLink: 'https://azexplorer.tplant.com.au',
     },
   ],
